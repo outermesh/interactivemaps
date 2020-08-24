@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset='utf-8' />
+  <title>Mapa de Autorizações CPFL</title>
+  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+  <script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=FUn3Y_Tk-IeGxkAB5DdokuJJIwJRcY-LLRaOka_uUoYpYMINkHdrtJWUtqMW1mU3fQu6F5EwnmkyGWVzjUJv-HFKANs3VMUfvqYG-srmSJGOCdzK1kPF42b4LHxUnCTyhi0nHjYdLby6DB-AglfGFB7Y5KHd8SGrjzhELDzRdRL8Qz4TwMtseW5O5_iNqziWuMRv5LXhqOfGLBTHuNkXH0fKgIyBrsvobRDybEIAnzK0drlISYPtsX9hZm4BLGgCQfs6Xihbhmqwmjal7lrvH9Gw8eGZ0tcuZ156_BAhJ7M" charset="UTF-8"></script><script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.0/mapbox-gl.js'></script>
+  <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.0/mapbox-gl.css' rel='stylesheet' />
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    h2,
+    h3 {
+      margin: 10px;
+      font-size: 1.2em;
+    }
+
+    h3 {
+      font-size: 1em;
+    }
+
+    p {
+      font-size: 0.85em;
+      margin: 10px;
+      text-align: left;
+    }
+
+    /**
+    * Create a position for the map
+    * on the page */
+    #map {
+      position: absolute;
+      left: 25%;
+      top: 0;
+      bottom: 0;
+      width: 75%;
+    }
+
+    /*inicio painel esquerdo*/
+    .map-overlay fieldset {
+      display: none;
+      background: #ddd;
+      border: none;
+      padding: 10px;
+      margin: 0;
+    }
+
+    .map-overlay input {
+      display: block;
+      border: none;
+      width: 23%;
+      border-radius: 3px;
+      padding: 8px;
+      margin: 0;
+    }
+
+    .map-overlay .listing {
+      overflow: auto;
+      max-height: 100%;
+    }
+
+    .map-overlay .listing>* {
+      display: block;
+      padding: 5px 10px;
+      margin: 0;
+    }
+
+    .map-overlay .listing a {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      color: #222222;
+      text-decoration: none;
+    }
+
+    .map-overlay .listing a:last-child {
+      border: none;
+    }
+
+    .map-overlay .listing a:hover {
+      background: #f0f0f0;
+    }
+
+    .map-overlay .listing a.active {
+      background: #e6e5e5
+    }
+
+    /*final painel esquerdo*/
+
+
+    .map-overlayDireita {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 1);
+      margin-right: 10px;
+      font-family: Arial, sans-serif;
+      overflow: auto;
+      border-radius: 3px;
+    }
+
+    #features {
+      top: 0;
+      height: fit-content;
+      margin-top: 10px;
+      width: 240px;
+    }
+
+
+    #floating-logo {
+      position: absolute;
+      z-index: 100;
+      bottom: 4%;
+      right: 2%;
+    }
+
+    #fadeout {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 1;
+      transition: 1s opacity;
+      text-align: center;
+      font-size: 36px;
+      font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+      color: white;
+    }
+
+    .mapboxgl-ctrl-geocoder {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class='map-overlay'>
+    <fieldset>
+      <input id='feature-filter' type='text' placeholder='Filter results by name' />
+    </fieldset>
+    <div id='feature-listing' class='listing'></div>
+  </div>
+
+  <!-- Logotipo -->
+  <div id='logo'>
+    <img id="floating-logo"
+      src="https://github.com/outermesh/interactivemaps/blob/master/Logotipo-Internet-HD-796x260-branco.png?raw=true"
+      width=10%>
+  </div>
+
+  <!-- Geocoder-->
+  <script
+    src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v3.1.4/mapbox-gl-geocoder.min.js'></script>
+  <link rel='stylesheet'
+    href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v3.1.4/mapbox-gl-geocoder.css'
+    type='text/css' />
+
+
+  <div id='map'></div>
+
+  <div class='map-overlayDireita' id='features'>
+    <h2><em>Projeto e Informações</em></h2>
+    <div id='pd'>
+      <p>Clique em uma área para ver mais informações.</p>
+    </div>
+  </div>
+
+
+  <!-- Código Fade Início-->
+  <div id="fadeout">Status: Projetos em Jaguariúna</div>
+  <script>
+    //incluir #fadeout em css
+    window.onload = function () {
+      window.setTimeout(fadeout, 3000); //3 segundos
+      window.setTimeout(removeFade, 6000);
+    }
+    function fadeout() {
+      document.getElementById('fadeout').style.opacity = '0';
+    }
+    function removeFade() {
+      document.getElementById('fadeout').style.display = 'none';
+    }
+  </script>
+  <!-- Código Fade Final-->
+
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoidGVzdGluZ2FsZXgiLCJhIjoiY2pkazZ5d2JjMWNmMTJ4bzZnczk5a3o2ZyJ9.4RpePuCjlpUU7IQSz_Lfug';
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/testingalex/cjzbufvis1ku81cp9pjlgyppv',
+      center: [-46.986663, -22.695849],
+      zoom: 13
+    });
+
+    // map.addControl(new MapboxGeocoder({
+    //   accessToken: mapboxgl.accessToken
+    // }));
+
+    /*inicio painel esquerdo*/
+    // Holds visible Pole-to-Pole features for filtering
+    var vetorPontos = [];
+
+    // Create a popup, but don't add it to the map yet.
+    var popup = new mapboxgl.Popup({
+      closeButton: false
+    });
+
+    var filterEl = document.getElementById('feature-filter');
+    var listingEl = document.getElementById('feature-listing');
+
+    function renderListings(features) {
+      // Clear any existing listings
+      listingEl.innerHTML = '';
+      if (features.length) {
+        features.forEach(function (feature) {
+          var prop = feature.properties;
+          var item = document.createElement('a');
+
+
+          item.href = '#';
+          item.className = '';
+          //item.target = '_blank';
+          item.textContent = prop.Projeto + ' (' + prop.Nota + ')';
+          // item.addEventListener('mouseover', function () {
+          //   // Highlight corresponding feature on the map
+          //   popup.setLngLat(feature.geometry.coordinates)
+          //     .setText(feature.properties.Projeto + ' (' + feature.properties.Nota + ')')
+          //     .addTo(map);
+          // });
+          //when clicking on the list option
+          item.onclick = function (e) {
+            //changing background - multiple selection allowed
+            if (this.className == 'active') {
+              this.className = '';
+              document.getElementById('pd').innerHTML = '<p>Clique em uma área para ver mais informações.</p>';
+            } else if (this.className == '') {
+              cleanActiveItens(); //clean list before activating background
+              this.className = 'active'; //activate background of only selected button
+
+              //populating right side panel
+              document.getElementById('pd').innerHTML = '<h3><strong>' + feature.properties.Projeto
+                + '</strong></h3>' + '<p><strong>Nota: </strong>' + feature.properties.Nota + '</p>'
+                + '<p><strong>Status: </strong>' + feature.properties.Status + '</p>'
+                + '<p><strong>Obs: </strong>' + feature.properties.OBS + '</p>'
+                + '<p><strong>Postes: </strong>' + feature.properties.Postes + '</p>'
+                + '<p><strong>Metros: </strong>' + feature.properties.Metros + '</p>'
+                + '<p><strong>Download: </strong>' + feature.properties.Download + '</p>';
+
+              //clearing highlight layer
+              map.setFilter('areahighlighted', ['has', 'emptyProperty']);
+
+              //start filter on clicking the list
+              var gettingFeatures = map.queryRenderedFeatures({ layers: ['Pole-to-Pole'] });
+              vetorPontos = getUniqueFeatures(gettingFeatures, "Nota");
+              // var filtered = vetorPontos.filter(function (feature) {
+              //   var name = normalize(feature.properties.Nota);
+              //   var code = normalize(feature.properties.Projeto);
+              //   return code.indexOf(value) > -1 || name.indexOf(value) > -1;
+              // });
+              filterSelectedMap(feature);
+              //end filter on clicking the list
+            }
+            //alert(feature.properties.Nota);
+            //filter on click
+            // var filter = features.reduce(function (memo, feature) {
+            //   memo.push(feature.properties.Nota);
+            //   return memo;
+            // }, ['in', 'Nota']);
+            // map.setFilter('areahighlighted', filter);
+            //end filter
+          };
+          listingEl.appendChild(item);
+        });
+
+        // Show the filter input
+        filterEl.parentNode.style.display = 'block';
+      } else {
+        //clearing the list automatically!
+        var empty = document.createElement('p');
+        empty.textContent = 'Sem resultados encontrados';
+        listingEl.appendChild(empty);
+        map.setFilter('areahighlighted', ['has', 'emptyProperty']);
+
+        // Hide the filter input
+        //filterEl.parentNode.style.display = 'none';
+
+        // remove features filter
+        map.setFilter('Pole-to-Pole', ['has', 'Projeto']);
+      }
+    }
+
+    function normalize(string) {
+      return string.trim().toLowerCase();
+    }
+
+    function getUniqueFeatures(array, comparatorProperty) {
+      var existingFeatureKeys = {};
+      // Because features come from tiled vector data, feature geometries may be split
+      // or duplicated across tile boundaries and, as a result, features may appear
+      // multiple times in query results.
+      var uniqueFeatures = array.filter(function (el) {
+        if (existingFeatureKeys[el.properties[comparatorProperty]]) {
+          return false;
+        } else {
+          existingFeatureKeys[el.properties[comparatorProperty]] = true;
+          return true;
+        }
+      });
+
+      return uniqueFeatures;
+    }
+
+    /*final painel esquerdo*/
+
+
+
+
+    var popupInfo = new mapboxgl.Popup({ closeOnClick: false })
+      .addTo(map);
+
+    map.on('load', function () {
+      // Add the source to query. In this example we're using
+      // county polygons uploaded as vector tiles
+      map.addSource('Pole-to-Pole', {
+        "type": "vector",
+        "url": "mapbox://testingalex.03bw06zf"
+      });
+      map.addLayer({
+        'id': 'Pole-to-Pole',
+        'type': 'line',
+        'source': 'Pole-to-Pole',
+        'source-layer': 'Tileset_V12-2e7clg',
+        'paint': {
+          'line-color': [
+            'match',
+            ['get', 'CorCode'],
+            'Blue', '#42c2f4',
+            'DarkBlue', '#356d82',
+    /* other */ '#fcd362'
+          ],
+          'line-width': 4,
+        },
+      }, 'road-label-small');
+
+      map.addLayer({
+        'id': 'areahighlighted',
+        'type': 'line',
+        'source': 'Pole-to-Pole',
+        'source-layer': 'Tileset_V12-2e7clg',
+        'paint': {
+          'line-color': '#FFFFFF',
+          'line-width': 6,
+        },
+        "filter": ["in", "Projeto", ""]
+      }, 'road-label-small'); // Place polygon under these labels.
+
+
+      //add selection
+      map.on('click', function (e) {
+        // set bbox as 5px reactangle area around clicked point
+        var bbox = [[e.point.x - 5, e.point.y - 5], [e.point.x + 5, e.point.y + 5]];
+        var features = map.queryRenderedFeatures(bbox, { layers: ['Pole-to-Pole'] });
+
+        // Run through the selected features and set a filter
+        // to match features with unique Name codes to activate
+        // the `counties-highlighted` layer.
+        var filter = features.reduce(function (memo, feature) {
+          memo.push(feature.properties.Projeto);
+          return memo;
+        }, ['in', 'Projeto']);
+
+        map.setFilter('areahighlighted', filter);
+
+        var states = map.queryRenderedFeatures(bbox, {
+          layers: ['Pole-to-Pole']
+        });
+
+        if (states.length > 0) {
+          fillSidePanel(states);
+          cleanActiveItens();
+        } else {
+          document.getElementById('pd').innerHTML = '<p>Clique em uma área para ver mais informações.</p>';
+          cleanActiveItens();
+        }
+
+
+
+      });
+
+      /*inicio painel esquerdo*/
+      map.on('moveend', function () {
+        var features = map.queryRenderedFeatures({ layers: ['Pole-to-Pole'] });
+
+        if (features) {
+          var uniqueFeatures = getUniqueFeatures(features, "Nota");
+          // Populate features for the listing overlay.
+          renderListings(uniqueFeatures);
+
+          // Clear the input container
+          //filterEl.value = '';
+
+          // Store the current features in sn `vetorPontos` variable to
+          // later use for filtering on `keyup`.
+          vetorPontos = uniqueFeatures;
+        }
+      });
+
+      map.on('mousemove', 'Pole-to-Pole', function (e) {
+        // Change the cursor style as a UI indicator.
+        map.getCanvas().style.cursor = 'pointer';
+
+        // Populate the popup and set its coordinates based on the feature.
+        // var feature = e.features[0];
+        // popup.setLngLat(feature.geometry.coordinates)
+        //   .setText(feature.properties.Projeto + ' (' + feature.properties.Nota + ')')
+        //   .addTo(map);
+      });
+
+      map.on('mouseleave', 'Pole-to-Pole', function () {
+        map.getCanvas().style.cursor = 'grab';
+        popup.remove();
+      });
+
+      filterEl.addEventListener('keyup', function (e) {
+        var value = normalize(e.target.value);
+
+        // Filter visible features that don't match the input value.
+        var filtered = vetorPontos.filter(function (feature) {
+          var name = normalize(feature.properties.Nota);
+          var code = normalize(feature.properties.Projeto);
+          return code.indexOf(value) > -1 || name.indexOf(value) > -1;
+        });
+
+        // Populate the sidebar with filtered results
+        renderListings(filtered);
+
+        // Set the filter to populate features into the layer.
+        if (filterEl.value != '') {
+          map.setFilter('areahighlighted', ['match', ['get', 'Nota'], filtered.map(function (feature) {
+            return feature.properties.Nota;
+          }), true, false]);
+        } else {
+          //clean the highlight layer
+          map.setFilter('areahighlighted', ['has', 'emptyProperty']);
+        }
+
+      });
+
+      // Call this function on initialization
+      // passing an empty array to render an empty state
+      // renderListings([]);
+
+      /*final painel esquerdo*/
+
+      // //Populate entire list
+      // renderListings(getUniqueFeatures(map.querySourceFeatures('Pole-to-Pole', {
+      //   sourceLayer: 'Tileset_V12-2e7clg'
+      //   //filter: ['in', 'Nota', feature.properties.Nota]
+      // }), "Nota"));
+
+      function popularLista() {
+        //renderListings(getUniqueFeatures(map.queryRenderedFeatures({ layers: ['Pole-to-Pole'] }), "Nota"));
+        var features = map.queryRenderedFeatures({ layers: ['Pole-to-Pole'] });
+
+        if (features) {
+          var uniqueFeatures = getUniqueFeatures(features, "Nota");
+          // Populate features for the listing overlay.
+          renderListings(uniqueFeatures);
+
+          // Clear the input container
+          //filterEl.value = '';
+
+          // Store the current features in sn `vetorPontos` variable to
+          // later use for filtering on `keyup`.
+          vetorPontos = uniqueFeatures;
+        }
+      }
+
+      function fillSidePanel(states) {
+        document.getElementById('pd').innerHTML = '<h3><strong>' + states[0].properties.Projeto + '</strong></h3>' + '<p><strong>Nota: </strong>' + states[0].properties.Nota + '</p>'
+          + '<p><strong>Status: </strong>' + states[0].properties.Status + '</p>'
+          + '<p><strong>Obs: </strong>' + states[0].properties.OBS + '</p>'
+          + '<p><strong>Postes: </strong>' + states[0].properties.Postes + '</p>'
+          + '<p><strong>Metros: </strong>' + states[0].properties.Metros + '</p>'
+          + '<p><strong>Download: </strong>' + states[0].properties.Download + '</p>';
+      }
+
+
+
+      var wasLoaded = false;
+      map.on('render', function () {
+        if (!map.loaded() || wasLoaded) return;
+        popularLista();
+        wasLoaded = true;
+      });
+
+      /*
+      Funções de filtro para serem adicionadas aos botões
+      map.setFilter('Pole-to-Pole', null);
+      */
+
+    });
+
+    function cleanActiveItens() {
+      var allItens = document.getElementsByClassName('active');
+      for (let i = 0; i < allItens.length; i++) {
+        allItens[i].className = '';
+      }
+    }
+
+    function filterSelectedMap(clickedRoute) {
+      map.setFilter('areahighlighted', ["any",["in", "Nota", clickedRoute.properties.Nota]]);
+    }
+
+
+  </script>
+
+</body>
+
+</html>
